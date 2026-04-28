@@ -30,10 +30,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.lovedose.indovyaparapp"
     },
     "web": {
       "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d31903dc-5837-49d0-8a66-a923e337db83"
+      }
     }
   }
 }

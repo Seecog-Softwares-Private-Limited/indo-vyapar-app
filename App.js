@@ -3,7 +3,7 @@ import { SafeAreaView, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
 
-const WEB_URL = "http://13.127.37.238:3004";
+const WEB_URL = "https://indovyapar.com/";
 
 export default function App() {
   return (
