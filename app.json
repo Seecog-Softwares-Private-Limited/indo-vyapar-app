@@ -3,9 +3,10 @@
     "name": "Indo Vyapar",
     "owner": "blablabla0978",
     "slug": "indo-vyapar-app",
-    "version": "1.0.0",
+    "scheme": "indovyapar",
+    "version": "1.0.1",
     "icon": "./assets/icon.png",
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/icon.png",
@@ -14,8 +15,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.indo-vyapar-app",
-      "buildNumber": "1",
+      "bundleIdentifier": "com.seecog.indovyapar",
+      "buildNumber": "5",
+      "associatedDomains": [
+        "applinks:indovyapar.com",
+        "applinks:www.indovyapar.com"
+      ],
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoadsInWebContent": true,
@@ -26,7 +31,8 @@
               "NSExceptionMinimumTLSVersion": "TLSv1.0"
             }
           }
-        }
+        },
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -34,15 +40,43 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.lovedose.indovyaparapp"
+      "package": "com.seecog.indovyapar",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "indovyapar.com",
+              "pathPrefix": "/api/auth/oauth/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.indovyapar.com",
+              "pathPrefix": "/api/auth/oauth/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro"
     },
     "extra": {
+      "webUrlProd": "https://indovyapar.com",
+      "webUrlDev": "http://localhost:3005",
       "eas": {
         "projectId": "83e42486-e616-4b69-adbf-cb397d36ec9e"
       }
-    }
+    },
+    "plugins": [
+      "expo-web-browser",
+      "expo-apple-authentication"
+    ]
   }
 }

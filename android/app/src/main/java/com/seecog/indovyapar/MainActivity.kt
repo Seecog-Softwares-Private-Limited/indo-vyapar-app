@@ -1,4 +1,4 @@
-package com.lovedose.indovyaparapp
+package com.seecog.indovyapar
 
 import android.os.Build
 import android.os.Bundle
