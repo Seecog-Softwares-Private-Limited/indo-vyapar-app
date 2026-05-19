@@ -16,12 +16,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.seecog.indovyapar",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "associatedDomains": [
         "applinks:indovyapar.com",
         "applinks:www.indovyapar.com"
       ],
       "infoPlist": {
+        "NSCameraUsageDescription": "Indo Vyapar uses the camera to upload product photos and verification documents.",
+        "NSPhotoLibraryUsageDescription": "Indo Vyapar accesses your photo library so you can attach images to listings and orders.",
+        "NSPhotoLibraryAddUsageDescription": "Indo Vyapar may save images you export from the app to your photo library.",
+        "NSLocationWhenInUseUsageDescription": "Indo Vyapar uses your location for delivery estimates and nearby seller features.",
+        "NSFaceIDUsageDescription": "Indo Vyapar uses Face ID to protect your account and confirm sensitive actions.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoadsInWebContent": true,
           "NSExceptionDomains": {
@@ -32,7 +37,8 @@
             }
           }
         },
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -41,6 +47,21 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.seecog.indovyapar",
+      "versionCode": 6,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_MEDIA_IMAGES",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "POST_NOTIFICATIONS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -57,9 +78,15 @@
               "pathPrefix": "/api/auth/oauth/"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "category": ["BROWSABLE", "DEFAULT"],
+          "data": [
+            {
+              "scheme": "indovyapar"
+            }
           ]
         }
       ]
@@ -70,13 +97,51 @@
     "extra": {
       "webUrlProd": "https://indovyapar.com",
       "webUrlDev": "http://localhost:3005",
+      "minAppVersion": null,
+      "storeUrlIos": "https://apps.apple.com/app/id000000000",
+      "storeUrlAndroid": "https://play.google.com/store/apps/details?id=com.seecog.indovyapar",
       "eas": {
         "projectId": "83e42486-e616-4b69-adbf-cb397d36ec9e"
       }
     },
     "plugins": [
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Indo Vyapar uses your location for delivery and nearby store features."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Indo Vyapar to access photos for uploads.",
+          "cameraPermission": "Allow Indo Vyapar to use the camera for product photos."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ea580c"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Indo Vyapar to use Face ID for secure sign-in."
+        }
+      ]
     ]
   }
 }
