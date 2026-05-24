@@ -200,7 +200,10 @@ function AppContent() {
       setAuthPending(true);
       setAuthError("");
       try {
-        const oauthUrl = new URL(url);
+        const absoluteUrl = /^https?:\/\//i.test(url)
+          ? url
+          : `${webBaseUrl.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
+        const oauthUrl = new URL(absoluteUrl);
         oauthUrl.searchParams.set("mobile", "1");
         oauthUrl.searchParams.set("platform", "expo-webview");
         oauthUrl.searchParams.set("redirect_uri", redirectUri);
@@ -223,7 +226,7 @@ function AppContent() {
         setAuthPending(false);
       }
     },
-    [applyAuthResultUrl, redirectUri]
+    [applyAuthResultUrl, redirectUri, webBaseUrl]
   );
 
   const shouldOpenExternally = useCallback((url) => {
@@ -264,6 +267,12 @@ function AppContent() {
             }
           } catch {
             /* optional */
+          }
+          break;
+        }
+        case "custom": {
+          if (payload.name === "OPEN_EXTERNAL_BROWSER" && typeof payload.payload === "string") {
+            await openOAuthInSystemBrowser(payload.payload);
           }
           break;
         }
