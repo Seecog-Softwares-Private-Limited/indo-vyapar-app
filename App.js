@@ -18,8 +18,6 @@ import { WebView } from "react-native-webview";
 
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { OfflineScreen } from "./src/components/OfflineScreen";
-import { NativeChromeBar } from "./src/components/NativeChromeBar";
-import { AppleSignInOverlay } from "./src/components/AppleSignInOverlay";
 import { useNetworkStatus } from "./src/hooks/useNetworkStatus";
 import { INJECTED_APP_SCRIPT } from "./src/injected/injectedScript";
 import { COLORS } from "./src/constants/theme";
@@ -32,6 +30,12 @@ const OAUTH_PATH_REGEX = /\/api\/auth\/oauth\/(google|facebook|apple)(\/|$)/i;
 const OAUTH_PROVIDER_HOST_REGEX =
   /(accounts\.google\.com|facebook\.com|m\.facebook\.com|appleid\.apple\.com)/i;
 
+/** Safari-like UA so the site serves the same styles/assets as mobile Safari (not a washed WebView theme). */
+const WEBVIEW_USER_AGENT =
+  Platform.OS === "ios"
+    ? "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+    : "Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+
 function stripTrailingSlash(value) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
@@ -40,22 +44,16 @@ function getWebBaseUrl() {
   const extra = Constants.expoConfig?.extra || {};
   const devUrl = extra.webUrlDev || "http://localhost:3005";
   const prodUrl = extra.webUrlProd || "https://indovyapar.com";
-  return stripTrailingSlash(__DEV__ ? devUrl : prodUrl);
+  const shouldUseProdInDev =
+    __DEV__ &&
+    Platform.OS !== "web" &&
+    /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(devUrl);
+  return stripTrailingSlash(shouldUseProdInDev ? prodUrl : __DEV__ ? devUrl : prodUrl);
 }
 
 function buildAppWebUrl(baseUrl, reloadKey = 0) {
   const separator = baseUrl.includes("?") ? "&" : "?";
   return `${baseUrl}${separator}app_reload=${reloadKey}`;
-}
-
-function isLikelyAuthUrl(url) {
-  if (!url) return false;
-  try {
-    const path = new URL(url).pathname;
-    return /\/(login|sign-in|signin|register|auth|account\/login)(\/|$)/i.test(path);
-  } catch {
-    return false;
-  }
 }
 
 function AppContent() {
@@ -75,8 +73,6 @@ function AppContent() {
   const [authError, setAuthError] = useState("");
   const [currentWebUrl, setCurrentWebUrl] = useState(buildAppWebUrl(webBaseUrl, 0));
   const [navUrl, setNavUrl] = useState(currentWebUrl);
-  const [navTitle, setNavTitle] = useState("");
-  const [chromeRefreshing, setChromeRefreshing] = useState(false);
   const [offlineRetryBusy, setOfflineRetryBusy] = useState(false);
 
   const wasOfflineRef = useRef(false);
@@ -173,28 +169,6 @@ function AppContent() {
     [webBaseUrl]
   );
 
-  const handleAppleAuthenticated = useCallback(
-    (tokens) => {
-      if (tokens && typeof tokens === "object") {
-        const has =
-          tokens.token ||
-          tokens.access_token ||
-          tokens.refresh_token ||
-          tokens.session_token ||
-          tokens.session;
-        if (has) {
-          persistAuthInWebView(tokens);
-        }
-      }
-      const next = Date.now();
-      setReloadKey(next);
-      const nextUrl = buildAppWebUrl(webBaseUrl, next);
-      setCurrentWebUrl(nextUrl);
-      setNavUrl(nextUrl);
-    },
-    [persistAuthInWebView, webBaseUrl]
-  );
-
   const openOAuthInSystemBrowser = useCallback(
     async (url) => {
       setAuthPending(true);
@@ -249,14 +223,12 @@ function AppContent() {
           }
           break;
         case "pull_refresh":
-          setChromeRefreshing(true);
           try {
             await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           } catch {
             /* optional */
           }
           webViewRef.current?.reload();
-          setTimeout(() => setChromeRefreshing(false), 1200);
           break;
         case "haptic": {
           try {
@@ -344,12 +316,6 @@ function AppContent() {
     wasOfflineRef.current = !isConnected;
   }, [isConnected]);
 
-  const handleChromeRefresh = useCallback(() => {
-    setChromeRefreshing(true);
-    webViewRef.current?.reload();
-    setTimeout(() => setChromeRefreshing(false), 1500);
-  }, []);
-
   const handleOfflineRetry = useCallback(async () => {
     setOfflineRetryBusy(true);
     try {
@@ -362,11 +328,6 @@ function AppContent() {
     }
   }, [refresh]);
 
-  const showAppleOverlay = useMemo(() => {
-    const u = navUrl || currentWebUrl;
-    return Platform.OS === "ios" && isLikelyAuthUrl(u);
-  }, [navUrl, currentWebUrl]);
-
   const webViewCacheProps = useMemo(
     () =>
       __DEV__
@@ -378,7 +339,7 @@ function AppContent() {
   if (hasFatalError) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar style="dark" />
+        <StatusBar style="dark" backgroundColor={COLORS.white} />
         <View style={styles.fallbackWrapper}>
           <Text style={styles.fallbackTitle}>Unable to load Indo Vyapar</Text>
           <Text style={styles.fallbackText}>
@@ -394,25 +355,17 @@ function AppContent() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style="dark" backgroundColor={COLORS.white} />
       {!isConnected ? (
         <OfflineScreen onRetry={handleOfflineRetry} busy={offlineRetryBusy} />
       ) : null}
-
-      <NativeChromeBar
-        pageTitle={navTitle}
-        pageUrl={navUrl}
-        onRefresh={handleChromeRefresh}
-        refreshing={chromeRefreshing}
-        showCompact={false}
-      />
 
       {authPending ? (
         <View style={styles.authBanner}>
           <Text style={styles.authBannerText}>Complete login in browser...</Text>
         </View>
       ) : null}
-      {authError ? (
+      {authError && !/apple sign in/i.test(authError) ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerText}>{authError}</Text>
         </View>
@@ -423,6 +376,7 @@ function AppContent() {
         key={`${currentWebUrl}-${reloadKey}`}
         source={{ uri: currentWebUrl }}
         style={styles.webview}
+        userAgent={WEBVIEW_USER_AGENT}
         javaScriptEnabled
         domStorageEnabled
         startInLoadingState
@@ -434,13 +388,10 @@ function AppContent() {
         onShouldStartLoadWithRequest={handleShouldStartRequest}
         onNavigationStateChange={(nav) => {
           if (nav.url) setNavUrl(nav.url);
-          if (nav.title != null) setNavTitle(nav.title);
         }}
-        onLoadEnd={() => setChromeRefreshing(false)}
-        contentMode={Platform.OS === "ios" ? "mobile" : undefined}
         sharedCookiesEnabled
         thirdPartyCookiesEnabled={Platform.OS === "android"}
-        {...(Platform.OS === "android" ? { mixedContentMode: "always" } : {})}
+        {...(Platform.OS === "android" ? { mixedContentMode: "always", forceDarkOn: false } : {})}
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         onContentProcessDidTerminate={() => webViewRef.current?.reload()}
@@ -452,13 +403,6 @@ function AppContent() {
         )}
       />
 
-      <AppleSignInOverlay
-        visible={showAppleOverlay && isConnected}
-        webBaseUrl={webBaseUrl}
-        webViewRef={webViewRef}
-        onAuthenticated={handleAppleAuthenticated}
-        onErrorMessage={setAuthError}
-      />
     </SafeAreaView>
   );
 }
@@ -478,7 +422,7 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
-    backgroundColor: COLORS.primaryLight
+    backgroundColor: COLORS.white
   },
   authBanner: {
     backgroundColor: "#eff6ff",
@@ -508,7 +452,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: COLORS.primaryLight
+    backgroundColor: COLORS.white
   },
   loadingLabel: {
     marginTop: 12,
@@ -521,7 +465,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
-    backgroundColor: COLORS.primaryLight
+    backgroundColor: COLORS.white
   },
   fallbackTitle: {
     fontSize: 20,

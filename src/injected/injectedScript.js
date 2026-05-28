@@ -1,6 +1,6 @@
 /**
- * Injected once after load: chunk-error reporting, image retry/fallback,
- * tablet-friendly layout CSS, pull-from-top refresh signal, haptics hints, share bridge.
+ * Minimal injection: error reporting, light color scheme (match Safari),
+ * hide footer + Apple sign-in in app only. Does NOT alter site colors/images.
  */
 export const INJECTED_APP_SCRIPT = `
 (function () {
@@ -11,7 +11,6 @@ export const INJECTED_APP_SCRIPT = `
     } catch (e) {}
   }
 
-  /* --- Chunk / module load guard --- */
   function isChunkError(message) {
     return /Loading chunk|ChunkLoadError|Failed to fetch dynamically imported module/i.test(message || "");
   }
@@ -25,64 +24,147 @@ export const INJECTED_APP_SCRIPT = `
     if (isChunkError(msg)) post({ type: "chunk_error", message: msg });
   });
 
-  window.__INDO_VYAPAR_MOBILE__ = true;
+  /* Force light rendering so iOS/Android dark mode does not wash out hero colors */
+  function ensureLightColorScheme() {
+    var head = document.head || document.getElementsByTagName("head")[0];
+    if (!head) return;
+    var meta = document.querySelector('meta[name="color-scheme"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "color-scheme");
+      head.appendChild(meta);
+    }
+    meta.setAttribute("content", "light");
 
-  /* --- Tablet / responsive polish --- */
-  var style = document.createElement("style");
-  style.setAttribute("data-indo-vyapar", "responsive");
-  style.textContent =
-    "html{-webkit-text-size-adjust:100%;}" +
-    "@media (min-width:768px){body{background-color:#fff7ed;} img{max-width:100%;height:auto;}}" +
-    "@media (min-width:768px){#__next,main,#root{max-width:1200px;margin-left:auto;margin-right:auto;}}" +
-    "@media (min-width:1024px){#__next,main,#root{max-width:1280px;padding-left:16px;padding-right:16px;}}";
-  document.documentElement.appendChild(style);
+    var theme = document.querySelector('meta[name="theme-color"]');
+    if (!theme) {
+      theme = document.createElement("meta");
+      theme.setAttribute("name", "theme-color");
+      head.appendChild(theme);
+    }
+    theme.setAttribute("content", "#ffffff");
 
-  /* --- Image retry + placeholder (no broken icon) --- */
-  var PLACEHOLDER =
-    "data:image/svg+xml," +
-    encodeURIComponent(
-      '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240" viewBox="0 0 320 240">' +
-        '<rect fill="#fff7ed" width="320" height="240"/>' +
-        '<rect fill="#fed7aa" x="80" y="70" width="160" height="100" rx="6"/>' +
-        '<text x="160" y="200" text-anchor="middle" fill="#ea580c" font-family="system-ui,sans-serif" font-size="12">Indo Vyapar</text>' +
-      "</svg>"
-    );
+    if (!document.querySelector("style[data-indo-vyapar]")) {
+      var style = document.createElement("style");
+      style.setAttribute("data-indo-vyapar", "color-scheme");
+      style.textContent =
+        ":root{color-scheme:light !important;}" +
+        "html{color-scheme:light !important;-webkit-text-size-adjust:100%;}" +
+        "footer,[role='contentinfo'],.footer,#footer{display:none !important;}" +
+        "a[href*='/oauth/apple'],a[href*='appleid.apple.com']{display:none !important;}" +
+        "a[href*='/oauth/google'],a[href*='accounts.google.com']{display:none !important;}" +
+        "a[href*='/oauth/facebook'],a[href*='facebook.com']{display:none !important;}";
+      head.appendChild(style);
+    }
+  }
 
-  function enhanceImg(img) {
-    if (!img || img.dataset.ivImg === "1") return;
-    img.dataset.ivImg = "1";
-    var original = img.getAttribute("src") || "";
-    var tries = 0;
-    img.addEventListener(
-      "error",
-      function onErr() {
-        tries += 1;
-        if (tries === 1 && original) {
-          var sep = original.indexOf("?") >= 0 ? "&" : "?";
-          img.src = original + sep + "iv_retry=" + Date.now();
-          return;
-        }
-        img.src = PLACEHOLDER;
-        img.alt = img.alt || "Product image";
-      },
-      false
-    );
-    img.addEventListener("load", function () {
-      img.style.opacity = "1";
+  function hideNode(node) {
+    if (!node || !node.style || node.getAttribute("data-iv-hidden") === "1") return;
+    node.style.setProperty("display", "none", "important");
+    node.setAttribute("data-iv-hidden", "1");
+  }
+
+  function hideAppleSignInElements() {
+    document.querySelectorAll('a[href*="/oauth/apple"], a[href*="appleid.apple.com"]').forEach(hideNode);
+    document.querySelectorAll("button,a,[role='button']").forEach(function (node) {
+      var label = String(node.getAttribute("aria-label") || "").toLowerCase();
+      var href = String(node.getAttribute("href") || "").toLowerCase();
+      var text = String(node.innerText || "").trim().toLowerCase();
+      if (text.length > 120) return;
+      if (/oauth\\/apple|appleid\\.apple/.test(href)) {
+        hideNode(node);
+        return;
+      }
+      if (/sign in with apple|continue with apple|login with apple/.test(label + " " + text)) {
+        hideNode(node);
+      }
     });
-    img.style.backgroundColor = "#ffedd5";
-    img.style.opacity = img.complete ? "1" : "0.65";
-    img.style.transition = "opacity 0.25s ease";
+    document.querySelectorAll("p,span,div").forEach(function (node) {
+      var text = String(node.innerText || "").trim().toLowerCase();
+      if (!text || text.length > 180) return;
+      if (/^or continue with$/i.test(text) || /social login requires a secure browser session/.test(text)) {
+        hideNode(node);
+      }
+    });
   }
 
-  function scanImages() {
-    document.querySelectorAll("img").forEach(enhanceImg);
+  function isProviderLabel(text) {
+    var t = String(text || "").trim().toLowerCase();
+    return t === "google" || t === "facebook" || t === "apple";
   }
-  scanImages();
-  var imgObs = new MutationObserver(scanImages);
-  imgObs.observe(document.documentElement, { childList: true, subtree: true });
 
-  /* --- Pull-from-top refresh (WebView cannot nest RefreshControl) --- */
+  function hideGoogleFacebookSignInElements() {
+    document
+      .querySelectorAll(
+        'a[href*="/oauth/google"], a[href*="accounts.google.com"], a[href*="/oauth/facebook"], a[href*="facebook.com"]'
+      )
+      .forEach(hideNode);
+
+    var googleBtn = null;
+    var facebookBtn = null;
+
+    document.querySelectorAll("button,a,[role='button'],div,span").forEach(function (node) {
+      if (node.getAttribute("data-iv-hidden") === "1") return;
+      var label = String(node.getAttribute("aria-label") || "").trim();
+      var href = String(node.getAttribute("href") || "").toLowerCase();
+      var text = String(node.innerText || "").trim();
+      if (text.length > 80) return;
+
+      if (/oauth\\/google|accounts\\.google|oauth\\/facebook|facebook\\.com/.test(href)) {
+        hideNode(node);
+        return;
+      }
+
+      if (isProviderLabel(text) || isProviderLabel(label)) {
+        hideNode(node);
+        if (/^google$/i.test(text) || /^google$/i.test(label)) googleBtn = node;
+        if (/^facebook$/i.test(text) || /^facebook$/i.test(label)) facebookBtn = node;
+        return;
+      }
+
+      if (
+        /sign in with google|continue with google|login with google|sign in with facebook|continue with facebook|login with facebook/.test(
+          (label + " " + text).toLowerCase()
+        )
+      ) {
+        hideNode(node);
+      }
+    });
+
+    if (googleBtn && facebookBtn && googleBtn.parentElement === facebookBtn.parentElement) {
+      hideNode(googleBtn.parentElement);
+    }
+
+    document.querySelectorAll("p,span,div,h2,h3,hr").forEach(function (node) {
+      var text = String(node.innerText || "").trim();
+      if (!text || text.length > 60) return;
+      if (/^or continue with$/i.test(text)) {
+        hideNode(node);
+        var parent = node.parentElement;
+        if (parent) {
+          var parentText = String(parent.innerText || "").trim();
+          if (parentText.length < 80) hideNode(parent);
+        }
+      }
+    });
+  }
+
+  function applyAppOnlyUi() {
+    try {
+      ensureLightColorScheme();
+      document.querySelectorAll("footer,[role='contentinfo'],.footer,#footer").forEach(hideNode);
+      hideAppleSignInElements();
+      hideGoogleFacebookSignInElements();
+    } catch (_) {}
+  }
+
+  applyAppOnlyUi();
+  document.addEventListener("DOMContentLoaded", applyAppOnlyUi);
+  var uiObs = new MutationObserver(applyAppOnlyUi);
+  if (document.documentElement) {
+    uiObs.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
   var startY = null;
   var armed = false;
   window.addEventListener(
@@ -117,7 +199,6 @@ export const INJECTED_APP_SCRIPT = `
     { passive: true }
   );
 
-  /* --- Heuristic haptics for cart / checkout actions --- */
   document.addEventListener(
     "click",
     function (e) {
@@ -133,7 +214,6 @@ export const INJECTED_APP_SCRIPT = `
     true
   );
 
-  /* --- Optional: page can call window.indoVyaparShare(title, url) --- */
   window.indoVyaparShare = function (title, url) {
     post({
       type: "share_request",
