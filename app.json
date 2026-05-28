@@ -4,10 +4,10 @@
     "owner": "blablabla0978",
     "slug": "indo-vyapar-app",
     "scheme": "indovyapar",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "icon": "./assets/icon.png",
     "orientation": "default",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -22,11 +22,15 @@
         "applinks:www.indovyapar.com"
       ],
       "infoPlist": {
+<<<<<<< Updated upstream
         "NSCameraUsageDescription": "Indo Vyapar uses the camera to upload product photos and verification documents.",
         "NSPhotoLibraryUsageDescription": "Indo Vyapar accesses your photo library so you can attach images to listings and orders.",
         "NSPhotoLibraryAddUsageDescription": "Indo Vyapar may save images you export from the app to your photo library.",
         "NSLocationWhenInUseUsageDescription": "Indo Vyapar uses your location for delivery estimates and nearby seller features.",
         "NSFaceIDUsageDescription": "Indo Vyapar uses Face ID to protect your account and confirm sensitive actions.",
+=======
+        "UIUserInterfaceStyle": "Light",
+>>>>>>> Stashed changes
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoadsInWebContent": true,
           "NSExceptionDomains": {
@@ -42,6 +46,7 @@
       }
     },
     "android": {
+      "versionCode": 5,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
@@ -105,6 +110,7 @@
       }
     },
     "plugins": [
+<<<<<<< Updated upstream
       "expo-web-browser",
       "expo-apple-authentication",
       "expo-secure-store",
@@ -142,6 +148,9 @@
           "faceIDPermission": "Allow Indo Vyapar to use Face ID for secure sign-in."
         }
       ]
+=======
+      "expo-web-browser"
+>>>>>>> Stashed changes
     ]
   }
 }
