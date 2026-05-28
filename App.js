@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-import { AppShell } from "./src/app/AppShell";
-=======
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -409,13 +406,14 @@ function AppContent() {
     </SafeAreaView>
   );
 }
->>>>>>> Stashed changes
 
 export default function App() {
-  return <AppShell />;
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 }
-<<<<<<< Updated upstream
-=======
 
 const styles = StyleSheet.create({
   container: {
@@ -496,4 +494,3 @@ const styles = StyleSheet.create({
     color: COLORS.primaryDark
   }
 });
->>>>>>> Stashed changes

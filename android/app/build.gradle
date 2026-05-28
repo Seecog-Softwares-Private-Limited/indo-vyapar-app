@@ -92,13 +92,8 @@ android {
         applicationId 'com.seecog.indovyapar'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-<<<<<<< Updated upstream
-        versionCode 3
-        versionName "1.0.1"
-=======
         versionCode 5
         versionName "1.0.2"
->>>>>>> Stashed changes
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

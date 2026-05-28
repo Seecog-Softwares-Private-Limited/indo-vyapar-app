@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-/** @deprecated Import from ../bridge/injectedScript */
-export { INJECTED_APP_SCRIPT } from "../bridge/injectedScript";
-=======
 /**
  * Minimal injection: error reporting, light color scheme (match Safari),
  * hide footer + Apple sign-in in app only. Does NOT alter site colors/images.
@@ -229,4 +225,3 @@ export const INJECTED_APP_SCRIPT = `
   true;
 })();
 `;
->>>>>>> Stashed changes
